@@ -39,8 +39,8 @@ public class CategoryService {
 	
 	@Transactional
 	public CategoryDTO insert(CategoryDTO obj) {
-		obj.setId(null);
-		Category entity = fromCategoryDTO(obj);
+		Category entity = new Category();
+		entity.setName(obj.getName());
 		entity = repository.save(entity);
 		return new CategoryDTO(entity);
 	}
@@ -68,10 +68,5 @@ public class CategoryService {
 		catch(DataIntegrityViolationException e) {
 			throw new DatabaseException("Integrity violation");
 		}
-	}
-	
-	
-	public Category fromCategoryDTO(CategoryDTO obj) {
-		return new Category(obj.getId(), obj.getName());
 	}
 }

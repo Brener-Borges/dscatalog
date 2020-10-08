@@ -10,8 +10,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.brenerborges.dscatalog.dto.CategoryDTO;
 import com.brenerborges.dscatalog.dto.ProductDTO;
+import com.brenerborges.dscatalog.entities.Category;
 import com.brenerborges.dscatalog.entities.Product;
+import com.brenerborges.dscatalog.repositories.CategoryRepository;
 import com.brenerborges.dscatalog.repositories.ProductRepository;
 import com.brenerborges.dscatalog.services.exceptions.ResourceNotFoundException;
 
@@ -21,10 +24,13 @@ public class ProductService {
 	@Autowired
 	private ProductRepository repository;
 	
+	@Autowired
+	private CategoryRepository categoryRepository;
+	
 	@Transactional(readOnly = true)
 	public Page<ProductDTO> findAllPaged(PageRequest pageRequest){
 		Page<Product> list = repository.findAll(pageRequest);
-		return list.map(x -> new ProductDTO(x));
+		return list.map(x -> new ProductDTO(x, x.getCategories()));
 	}
 	
 	@Transactional(readOnly = true)
@@ -36,17 +42,17 @@ public class ProductService {
 	
 	@Transactional
 	public ProductDTO insert(ProductDTO obj) {
-		obj.setId(null);
-		Product entity = fromProductDTO(obj);
+		Product entity = new Product();
+		fromProductDTO(entity, obj);
 		entity = repository.save(entity);
-		return new ProductDTO(entity);
+		return new ProductDTO(entity, entity.getCategories());
 	}
 	
 	@Transactional
-	public ProductDTO update(Long id, ProductDTO dto) {
+	public ProductDTO update(Long id, ProductDTO obj) {
 		try{
 			Product entity = repository.getOne(id);
-			updateData(entity, dto);
+			fromProductDTO(entity, obj);
 			entity = repository.save(entity);
 			return new ProductDTO(entity);
 		}
@@ -64,16 +70,17 @@ public class ProductService {
 		}	
 	}
 	
-	public Product fromProductDTO(ProductDTO obj) {
-		return new Product(obj.getId(), obj.getName(), obj.getDescription(), 
-				obj.getPrice(), obj.getImgUrl(), obj.getDate());
-	}
-	
-	public void updateData(Product entity, ProductDTO obj) {
+	private void fromProductDTO(Product entity, ProductDTO obj) {
 		entity.setName(obj.getName());
 		entity.setDescription(obj.getDescription());
 		entity.setPrice(obj.getPrice());
 		entity.setImgUrl(obj.getImgUrl());
 		entity.setDate(obj.getDate());
+		
+		entity.getCategories().clear();
+		for (CategoryDTO catDTO : obj.getCategories()) {
+			Category category = categoryRepository.getOne(catDTO.getId());
+			entity.getCategories().add(category);
+		}
 	}
 }
